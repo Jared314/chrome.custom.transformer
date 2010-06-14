@@ -1,0 +1,11 @@
+{
+   "name": "chrome.custom.transformer XML Example",
+   "version": "0.1",
+
+   "description": "Simulates in-place tranformations of XML files with a dynamically generated IFrame.",
+   "background_page": "background.html",
+   "content_scripts": [ {
+      "js": [ "chrome.custom.transformer.js", "document_idle.1.js" ],
+      "matches": [ "http://*/*.xml", "https://*/*.xml", "file:///*/*.xml" ]
+    } ]
+}
