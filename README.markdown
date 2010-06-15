@@ -14,6 +14,11 @@ If you use the "getLocalResourceContent" method,
 your extension must contain a Background Page and chrome.custom.transformer.js must be 
 included in said Background Page.
 
+Usage
+-----
+
+Usage examples are contained in document_idle.1.js.
+
 Copyright and Licensing
 -----------------------
 
