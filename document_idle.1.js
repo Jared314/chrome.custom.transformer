@@ -19,7 +19,7 @@ chrome.custom.transformer.transform(document, "<h1>Body Content</h1>");
 //	Using a custom XSL file embedded in the extension
 //
 /*
-chrome.extension.sendRequest({"name": "chrome.custom.transformer.getLocalResourceContent", "path": 'template.xsl'}, 
+chrome.extension.sendRequest({"name": "chrome.custom.transformer.getLocalResourceContent", "path": 'optional_template.xsl'}, 
 	function(response){
 		chrome.custom.transformer.transform(document, {"body" : "<h1>Body Content</h1>"}, response.content);
 	});
