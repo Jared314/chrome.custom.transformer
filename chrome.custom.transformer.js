@@ -2,16 +2,27 @@ if(!chrome.custom) chrome.custom = {};
 
 (function(){
 
-chrome.custom.transformer = {
+XSLTProcessor.prototype.setParameterMap = function(namespace, parameterMap){
+	for (var key in parameterMap)
+		if(typeof parameterMap[key] == "string")
+			this.setParameter(namespace, key, parameterMap[key]);
+};
 
-	"domFromString" : function(value){
-		return new DOMParser().parseFromString(value, "text/xml");
-	},
+String.prototype.toDOM = function(){
+	return new DOMParser().parseFromString(this, "text/xml");
+};
+
+String.prototype.toMap = function(key){
+	return {key: this};
+};
+
+chrome.custom.transformer = {
 
 	// 
 	// Should only be called from a Background Page
 	//
 	"getLocalResourceContent" : function(url, completeCallback) {
+		//Localize the url
 		url = chrome.extension.getURL(url);
 	
 		var xhr = new XMLHttpRequest();
@@ -23,31 +34,40 @@ chrome.custom.transformer = {
 		}
 		xhr.send();
 	},
+	
+	// 
+	// template.xsl
+	// Embedded XSL Document to remove a dependency on another file.
+	//
+	"xslDocumentContent" : '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:libxslt="http://xmlsoft.org/XSLT/namespace"><xsl:output method="html" encoding="utf-8" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" indent="no"/><xsl:param name="head"/><xsl:param name="body"/><xsl:template match="/"><html xmlns="http://www.w3.org/1999/xhtml"><head><xsl:value-of select="$head" disable-output-escaping="yes"/></head><body><xsl:value-of select="$body" disable-output-escaping="yes"/></body></html></xsl:template></xsl:stylesheet>',
+	
+	"transform" : function(targetDocument, content, xsl){
+		var contentMap = content
+		if(typeof contentMap == "string")
+			contentMap = contentMap.toMap("body");
 
-	"transform": function(targetDocument, xsl, headContent, bodyContent){
 		var xslDocument = xsl;
-		if(typeof xslDocument == "string"){
-			xslDocument = this.domFromString(xslDocument);
-		}
-
+		if(xslDocument == null) xslDocument = chrome.custom.transformer.xslDocumentContent;
+		if(typeof xslDocument == "string")
+			xslDocument = xslDocument.toDOM();
+		
 		var processor = new XSLTProcessor();
 		processor.importStylesheet(xslDocument);
-		processor.setParameter(null, "headContent", headContent);	
-		processor.setParameter(null, "bodyContent", bodyContent);
+		processor.setParameterMap(null, contentMap);
 
 		var serializer = new XMLSerializer();
 		var outStr = serializer.serializeToString(processor.transformToDocument(targetDocument).documentElement);
-	
+
 		var replacedRootNode = targetDocument.createElement('hairyTurnip');
 		while (targetDocument.documentElement.firstChild) {
 			replacedRootNode.appendChild(targetDocument.documentElement.firstChild);
 		}
-	
+
 	
 		var iframe = targetDocument.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
 		iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(outStr);
 		targetDocument.documentElement.insertBefore(iframe, targetDocument.documentElement.firstChild);
-	
+
 		var style = targetDocument.createElementNS("http://www.w3.org/1999/xhtml", "style");
 		style.setAttribute("type", "text/css");
 		var css = 'iframe {position:absolute; top:0; left:0; width: 100%; height:100%; border: none; display: block; background-color:#FFF; z-index:2;}';
@@ -68,6 +88,7 @@ chrome.custom.transformer = {
 	// Should only be called from a Background Page
 	//	
 	"init" : function(){
+		//Add any Request Listeners
 		chrome.extension.onRequest.addListener(chrome.custom.transformer.handleRequest);
 	}
 };
