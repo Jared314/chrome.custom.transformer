@@ -6,7 +6,7 @@
 //	Simplest example
 //		Passing a string as the content parameter will pass the string as the iframe overlay contents.
 //
-//chrome.custom.transformer.replace(document, "<html><body><h1>Replace Content</h1></body></html>");
+chrome.custom.transformer.replace(document, "<html><body><h1>Replace Content</h1></body></html>");
 
 
 //
