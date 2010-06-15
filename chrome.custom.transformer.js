@@ -37,16 +37,7 @@ chrome.custom.transformer = {
 	//
 	"defaultXslDocumentContent" : '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:libxslt="http://xmlsoft.org/XSLT/namespace"><xsl:output method="html" encoding="utf-8" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" indent="no"/><xsl:param name="head"/><xsl:param name="body"/><xsl:template match="/"><html xmlns="http://www.w3.org/1999/xhtml"><head><xsl:value-of select="$head" disable-output-escaping="yes"/></head><body><xsl:value-of select="$body" disable-output-escaping="yes"/></body></html></xsl:template></xsl:stylesheet>',
 	
-	"transform" : function(targetDocument, content, xsl){
-		var contentMap = content;
-		if(typeof contentMap == "string")
-			contentMap = {"body": contentMap};
-
-		var xslDocument = xsl;
-		if(xslDocument == null) xslDocument = chrome.custom.transformer.defaultXslDocumentContent;
-		if(typeof xslDocument == "string")
-			xslDocument = xslDocument.toDOM();
-		
+	"transformInternal" : function(targetDocument, contentMap, xslDocument){
 		var processor = new XSLTProcessor();
 		processor.importStylesheet(xslDocument);
 		processor.setParameterMap(null, contentMap);
@@ -70,6 +61,24 @@ chrome.custom.transformer = {
 		var text = targetDocument.createTextNode(css);
 		style.appendChild(text);
 		targetDocument.documentElement.insertBefore(style, targetDocument.documentElement.firstChild);
+		
+		return true;
+	},
+	
+	"transform" : function(targetDocument, content, xsl){
+		var contentMap = content;
+		if(typeof contentMap == "function")
+			contentMap = contentMap(targetDocument);
+		// This check is not in an else statement to allow for post-processing of the content function call
+		if(typeof contentMap == "string")
+			contentMap = {"body": contentMap};
+			
+		var xslDocument = xsl;
+		if(xslDocument == null) xslDocument = chrome.custom.transformer.defaultXslDocumentContent;
+		if(typeof xslDocument == "string")
+			xslDocument = xslDocument.toDOM();
+		
+		return this.transformInternal(targetDocument, contentMap, xslDocument);
 	},
 	
 	"handleRequest" : function(request, sender, sendResponse){

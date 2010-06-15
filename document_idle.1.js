@@ -16,6 +16,14 @@ chrome.custom.transformer.transform(document, "<h1>Body Content</h1>");
 
 
 //
+//	Using a content callback
+//		The callback's response is subject to the same behavior as explicitly passing a string or a map.
+//
+//chrome.custom.transformer.transform(document, function(targetDocument){ return {"body": "<h1>Body Callback Content</h1>"}; });
+
+
+
+//
 //	Using a custom XSL file embedded in the extension
 //
 /*
