@@ -13,11 +13,25 @@ String.prototype.toDOM = function(){
 };
 
 chrome.custom.transformer = {
-
+	"isBackgroundPage" : function(targetWindow){
+		var w = targetWindow;
+		if(w == null) w = window;
+		
+		var result = false;
+		try{
+			var b = chrome.extension.getBackgroundPage();
+			result = (b === w);
+		}catch(e){
+			//Consume error
+		}
+		return result;
+	},
+	
 	// 
 	// Should only be called from a Background Page
 	//
-	"getLocalResourceContent" : function(url, completeCallback) {
+	"getLocalResourceContentInternal" : function(url, completeCallback) {
+		
 		//Localize the url
 		url = chrome.extension.getURL(url);
 	
@@ -29,6 +43,21 @@ chrome.custom.transformer = {
 		  }
 		}
 		xhr.send();
+		
+		return true;
+	},
+	
+	"getLocalResourceContent" : function(url, completeCallback) {
+		if(!this.isBackgroundPage()){
+			//Call into background page and execute this method again.
+			chrome.extension.sendRequest(
+				{"name": "chrome.custom.transformer.getLocalResourceContent", "path": url}, 
+				completeCallback
+				);
+			return true;
+		}
+		
+		return this.getLocalResourceContentInternal(url, completeCallback);
 	},
 	
 	// 
@@ -74,7 +103,7 @@ chrome.custom.transformer = {
 			contentMap = {"body": contentMap};
 			
 		var xslDocument = xsl;
-		if(xslDocument == null) xslDocument = chrome.custom.transformer.defaultXslDocumentContent;
+		if(xslDocument == null) xslDocument = this.defaultXslDocumentContent;
 		if(typeof xslDocument == "string")
 			xslDocument = xslDocument.toDOM();
 		
@@ -93,9 +122,16 @@ chrome.custom.transformer = {
 	// Should only be called from a Background Page
 	//	
 	"init" : function(){
+		if(!this.isBackgroundPage()) return;
+		
 		//Add any Request Listeners
 		chrome.extension.onRequest.addListener(chrome.custom.transformer.handleRequest);
 	}
 };
+
+//Background Page Initializer
+if(chrome.custom.transformer.isBackgroundPage()){
+	chrome.custom.transformer.init();
+}
 
 })();

@@ -10,8 +10,9 @@ Installation
 The chrome.custom.transformer.js file does not have any external dependencies. 
 Copy the chrome.custom.transformer.js into your extension, and include as you see fit.
 
-If you use the "getLocalResourceContent" feature,
-you must call chrome.custom.transformer.init(); from within a Background Page.
+If you use the "getLocalResourceContent" method,
+your extension must contain a Background Page and chrome.custom.transformer.js must be 
+included in said Background Page.
 
 Copyright and Licensing
 -----------------------
