@@ -2,10 +2,10 @@
    "name": "chrome.custom.transformer Example",
    "version": "0.1",
 
-   "description": "Simulates in-place tranformations of a page using a dynamically generated IFrame.",
+   "description": "Simulates in-place tranformations of a page using a dynamically generated IFrame overlay.",
    "background_page": "background.html",
    "content_scripts": [ {
       "js": [ "chrome.custom.transformer.js", "document_idle.1.js" ],
-      "matches": [ "http://*/*", "file:///*/*" ]
+      "matches": [ "http://*/*", "https://*/*", "file:///*/*" ]
     } ]
 }
