@@ -8,6 +8,26 @@ XSLTProcessor.prototype.setParameterMap = function(namespace, parameterMap){
 			this.setParameter(namespace, key, parameterMap[key]);
 };
 
+Document.prototype.insertIFrameOverlay = function(url){
+	//Create IFrame
+	var iframe = this.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
+	iframe.src = url;
+	iframe.style.position = "absolute";
+	iframe.style.top = "0px";
+	iframe.style.left = "0px";
+	iframe.style.width = "100%";
+	iframe.style.height = "100%";
+	iframe.style.border = "none";
+	iframe.style.display = "block";
+	iframe.style.backgroundColor = "#FFF";
+	iframe.style.zIndex = "250";
+
+	//Insert IFrame
+	this.documentElement.insertBefore(iframe, this.documentElement.firstChild);
+	
+	return iframe;
+};
+
 String.prototype.toDOM = function(){
 	return new DOMParser().parseFromString(this, "text/xml");
 };
@@ -60,55 +80,66 @@ chrome.custom.transformer = {
 		return this.getLocalResourceContentInternal(url, completeCallback);
 	},
 	
+	"replaceInternal" : function(targetDocument, content){
+		//Insert IFrame Overlay
+		if(targetDocument.insertIFrameOverlay)
+			return targetDocument.insertIFrameOverlay('data:text/html;charset=utf-8,' + encodeURIComponent(content));
+			
+		return false;
+	},	
+
+	"replace" : function(targetDocument, content){
+		//Check & Convert content
+		var newContent = content;
+		if(typeof newContent == "function")
+			newContent = newContent(targetDocument);
+		
+		return this.replaceInternal(targetDocument, newContent);
+	},	
+
 	// 
 	// template.xsl
 	// Embedded XSL Document to remove a dependency on another file.
 	//
 	"defaultXslDocumentContent" : '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:libxslt="http://xmlsoft.org/XSLT/namespace"><xsl:output method="html" encoding="utf-8" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" indent="no"/><xsl:param name="head"/><xsl:param name="body"/><xsl:template match="/"><html xmlns="http://www.w3.org/1999/xhtml"><head><xsl:value-of select="$head" disable-output-escaping="yes"/></head><body><xsl:value-of select="$body" disable-output-escaping="yes"/></body></html></xsl:template></xsl:stylesheet>',
 	
-	"transformInternal" : function(targetDocument, contentMap, xslDocument){
+	"transformInternal" : function(targetDocument, parameterMap, xslDocument){
 		var processor = new XSLTProcessor();
 		processor.importStylesheet(xslDocument);
-		processor.setParameterMap(null, contentMap);
-
-		var serializer = new XMLSerializer();
-		var outStr = serializer.serializeToString(processor.transformToDocument(targetDocument).documentElement);
-
-		var replacedRootNode = targetDocument.createElement('hairyTurnip');
-		while (targetDocument.documentElement.firstChild) {
-			replacedRootNode.appendChild(targetDocument.documentElement.firstChild);
-		}
-
-	
-		var iframe = targetDocument.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
-		iframe.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(outStr);
-		targetDocument.documentElement.insertBefore(iframe, targetDocument.documentElement.firstChild);
-
-		var style = targetDocument.createElementNS("http://www.w3.org/1999/xhtml", "style");
-		style.setAttribute("type", "text/css");
-		var css = 'iframe {position:absolute; top:0; left:0; width: 100%; height:100%; border: none; display: block; background-color:#FFF; z-index:2;}';
-		var text = targetDocument.createTextNode(css);
-		style.appendChild(text);
-		targetDocument.documentElement.insertBefore(style, targetDocument.documentElement.firstChild);
+		processor.setParameterMap(null, parameterMap);
+		var d = processor.transformToDocument(targetDocument);
 		
-		return true;
+		var serializer = new XMLSerializer();
+		return serializer.serializeToString(d.documentElement);
 	},
 	
-	"transform" : function(targetDocument, content, xsl){
-		var contentMap = content;
-		if(typeof contentMap == "function")
-			contentMap = contentMap(targetDocument);
+	"transform" : function(currentDocument, parameters, xsl, targetDocument){
+		//Check & Convert parameters
+		var parameterMap = parameters;
+		if(typeof parameterMap == "function")
+			parameterMap = parameterMap(targetDocument);
 		// This check is not in an else statement to allow for post-processing of the content function call
-		if(typeof contentMap == "string")
-			contentMap = {"body": contentMap};
-			
+		if(typeof parameterMap == "string")
+			parameterMap = {"body": parameterMap};
+
+		//Check & Convert xsl			
 		var xslDocument = xsl;
 		if(xslDocument == null) xslDocument = this.defaultXslDocumentContent;
 		if(typeof xslDocument == "string")
 			xslDocument = xslDocument.toDOM();
+
+		//Check & Convert targetDocument		
+		var targetD = targetDocument;
+		if(targetD == null) targetD = "<html/>".toDOM();
 		
-		return this.transformInternal(targetDocument, contentMap, xslDocument);
+		//Transform Content
+		var transformedContent = this.transformInternal(targetD, parameterMap, xslDocument);
+
+		//Insert IFrame Overlay
+		return this.replace(currentDocument, transformedContent);
 	},
+	
+
 	
 	"handleRequest" : function(request, sender, sendResponse){
 		if(request.name == "chrome.custom.transformer.getLocalResourceContent")
