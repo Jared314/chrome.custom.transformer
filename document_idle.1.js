@@ -44,12 +44,25 @@ chrome.custom.transformer.replace(document, "<html><body><h1>Replace Content</h1
 
 
 //
-//	Using a custom XSL file embedded in the extension
+//	Using a custom XSL file, embedded in the extension
 //		The getLocalResourceContent method *requires* a Background Page and the inclusion of chrome.custom.transformer.js in said Background Page.
 //
 /*
 chrome.custom.transformer.getLocalResourceContent("optional_template.xsl", 
 	function(response){
 		chrome.custom.transformer.transform(document, {"body" : "<h1>Transform Body Custom XSL File Content</h1>"}, response.content);
+	});
+*/
+
+
+//
+//	Using a custom XSL file, embedded in the extension, and a target transformation document
+//		The getLocalResourceContent method *requires* a Background Page and the inclusion of chrome.custom.transformer.js in said Background Page.
+//		*Note*: this example assumes the current document is a valid XML file.
+//
+/*
+chrome.custom.transformer.getLocalResourceContent("optional_template_2.xsl", 
+	function(response){
+		chrome.custom.transformer.transform(document, {}, response.content, document);
 	});
 */
