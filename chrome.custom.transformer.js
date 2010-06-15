@@ -12,10 +12,6 @@ String.prototype.toDOM = function(){
 	return new DOMParser().parseFromString(this, "text/xml");
 };
 
-String.prototype.toMap = function(key){
-	return {key: this};
-};
-
 chrome.custom.transformer = {
 
 	// 
@@ -39,15 +35,15 @@ chrome.custom.transformer = {
 	// template.xsl
 	// Embedded XSL Document to remove a dependency on another file.
 	//
-	"xslDocumentContent" : '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:libxslt="http://xmlsoft.org/XSLT/namespace"><xsl:output method="html" encoding="utf-8" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" indent="no"/><xsl:param name="head"/><xsl:param name="body"/><xsl:template match="/"><html xmlns="http://www.w3.org/1999/xhtml"><head><xsl:value-of select="$head" disable-output-escaping="yes"/></head><body><xsl:value-of select="$body" disable-output-escaping="yes"/></body></html></xsl:template></xsl:stylesheet>',
+	"defaultXslDocumentContent" : '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:libxslt="http://xmlsoft.org/XSLT/namespace"><xsl:output method="html" encoding="utf-8" doctype-public="-//W3C//DTD XHTML 1.0 Transitional//EN" doctype-system="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" indent="no"/><xsl:param name="head"/><xsl:param name="body"/><xsl:template match="/"><html xmlns="http://www.w3.org/1999/xhtml"><head><xsl:value-of select="$head" disable-output-escaping="yes"/></head><body><xsl:value-of select="$body" disable-output-escaping="yes"/></body></html></xsl:template></xsl:stylesheet>',
 	
 	"transform" : function(targetDocument, content, xsl){
-		var contentMap = content
+		var contentMap = content;
 		if(typeof contentMap == "string")
-			contentMap = contentMap.toMap("body");
+			contentMap = {"body": contentMap};
 
 		var xslDocument = xsl;
-		if(xslDocument == null) xslDocument = chrome.custom.transformer.xslDocumentContent;
+		if(xslDocument == null) xslDocument = chrome.custom.transformer.defaultXslDocumentContent;
 		if(typeof xslDocument == "string")
 			xslDocument = xslDocument.toDOM();
 		
